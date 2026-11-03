@@ -1,0 +1,18 @@
+node_modules/
+downloads/
+*.log
+
+# 大体积离线资源（用 tools/ 脚本构建，或从 Releases 下载）
+tiles/
+**/transit/roads.js
+apk-build/assets/tiles/
+apk-build/build/
+*.apk
+*.keystore
+*.idsig
+
+# 个人环境
+desktop/启动地图.lnk
+启动局域网服务.lnk
+防火墙放行*.lnk
+.DS_Store

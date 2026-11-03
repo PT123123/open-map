@@ -1,0 +1,10 @@
+{
+  "name": "openmap-lanpub",
+  "version": "1.0.0",
+  "description": "开源地图 · 局域网发布服务（无强制依赖，qrcode 仅用于终端二维码）",
+  "main": "server.js",
+  "private": true,
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

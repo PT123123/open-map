@@ -1,0 +1,13 @@
+{
+  "name": "open-map-desktop",
+  "version": "1.0.0",
+  "description": "开源地图（基于 OpenStreetMap）- Electron 电脑版",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^45.2.1"
+  }
+}
