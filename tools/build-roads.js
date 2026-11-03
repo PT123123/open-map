@@ -11,9 +11,9 @@ const OUTS = [
   'C:/Users/ted/.zcode/workspace/1793421192336-da101ef3-ab13-44d1-9332-588a26ebece5/apk-build/assets',
 ];
 
-// 等级索引与默认限速（km/h）
-const CLASSES = ['motorway', 'trunk', 'primary', 'secondary', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link'];
-const SPEED = [100, 80, 60, 50, 70, 60, 50, 40];
+// 等级索引与默认限速（km/h）—— tertiary 用于莞惠边界衔接（8 类主干在边界处有缺口）
+const CLASSES = ['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'motorway_link', 'trunk_link', 'primary_link', 'secondary_link', 'tertiary_link'];
+const SPEED = [100, 80, 60, 50, 40, 70, 60, 50, 40, 30];
 
 const hav = (a, b) => {
   const R = 6371000, rad = Math.PI / 180;
