@@ -9,8 +9,11 @@
 <style>
   :root { --brand:#1677ff; --brand-light:#4096ff; --brand-weak:#e8f1ff; --bg:#f4f6f9; --card:#ffffff;
   --text:#1f2933; --muted:#7b8794; --border:#e2e8f0; --tile-filter:none; }
+[data-theme="dark"] .chip, [data-theme="dark"] .layer-card, [data-theme="dark"] button { color: #c9d3dd; }
+[data-theme="dark"] .chip.on, [data-theme="dark"] .layer-card.active, [data-theme="dark"] .chip.active { color: #6babff; }
+[data-theme="dark"] .pp-card h2, [data-theme="dark"] #sheet h2, [data-theme="dark"] h2 { color: #97a1ac; }
 [data-theme="dark"] { --brand:#3d8bff; --brand-light:#6babff; --brand-weak:#14263d; --bg:#0e1217; --card:#1a212b;
-  --text:#e6e8eb; --muted:#97a1ac; --border:#2a323d; --tile-filter: invert(1) hue-rotate(180deg) brightness(.86) contrast(.9) saturate(.65); }
+  --text:#e6e8eb; --muted:#97a1ac; --border:#2a323d; --tile-filter: invert(1) hue-rotate(185deg) brightness(.92) contrast(.88) saturate(.55); }
 body { background: var(--bg); }
 #sidebar { background: var(--card); }
 .leaflet-tile-pane { filter: var(--tile-filter); }

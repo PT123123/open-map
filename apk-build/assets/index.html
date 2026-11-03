@@ -20,11 +20,14 @@
   --border: #e8ecf0; --shadow: 0 2px 12px rgba(20,40,80,.12);
   --tabbar-h: 58px; --tile-filter: none;
 }
+[data-theme="dark"] .chip, [data-theme="dark"] .layer-card, [data-theme="dark"] button { color: #c9d3dd; }
+[data-theme="dark"] .chip.on, [data-theme="dark"] .layer-card.active, [data-theme="dark"] .chip.active { color: #6babff; }
+[data-theme="dark"] .pp-card h2, [data-theme="dark"] #sheet h2, [data-theme="dark"] h2 { color: #97a1ac; }
 [data-theme="dark"] {
   --bg: #0e1217; --card: #1a212b; --text: #e6e8eb; --muted: #97a1ac;
   --brand: #3d8bff; --brand2: #6babff; --brand-weak: #14263d;
   --border: #2a323d; --shadow: 0 2px 14px rgba(0,0,0,.5);
-  --tile-filter: invert(1) hue-rotate(180deg) brightness(.86) contrast(.9) saturate(.65);
+  --tile-filter: invert(1) hue-rotate(185deg) brightness(.92) contrast(.88) saturate(.55);
 }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; margin:0; overflow:hidden; }
