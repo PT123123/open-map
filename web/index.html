@@ -7,7 +7,16 @@
 <link rel="icon" href="favicon.png">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
-  :root { --brand:#0f766e; --brand-light:#14b8a6; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; }
+  :root { --brand:#1677ff; --brand-light:#4096ff; --brand-weak:#e8f1ff; --bg:#f4f6f9; --card:#ffffff;
+  --text:#1f2933; --muted:#7b8794; --border:#e2e8f0; --tile-filter:none; }
+[data-theme="dark"] { --brand:#3d8bff; --brand-light:#6babff; --brand-weak:#14263d; --bg:#0e1217; --card:#1a212b;
+  --text:#e6e8eb; --muted:#97a1ac; --border:#2a323d; --tile-filter: invert(1) hue-rotate(180deg) brightness(.86) contrast(.9) saturate(.65); }
+body { background: var(--bg); }
+#sidebar { background: var(--card); }
+.leaflet-tile-pane { filter: var(--tile-filter); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--card); color: var(--text); }
+.leaflet-bar a { background: var(--card); color: var(--text); border-color: var(--border); }
+.leaflet-control-scale-line { background: var(--card); color: var(--text); border-color: var(--border); }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body { margin: 0; display: flex; overflow: hidden; color: var(--text);
@@ -162,6 +171,14 @@
           <div id="rankTownStats" style="margin-top:8px;color:var(--muted)"></div>
         </div>
       </section>
+<div class="panel">
+        <h2>外观</h2>
+        <div class="theme-seg" id="themeSeg">
+          <button data-t="light">☀️ 浅色</button>
+          <button data-t="dark">🌙 深色</button>
+          <button data-t="auto">🔄 跟随系统</button>
+        </div>
+      </div>
       <section class="panel">
         <h2>路线规划（离线路网 · A* / Dijkstra / 双向）</h2>
         <div class="chips">
@@ -283,6 +300,23 @@
     b.addEventListener('click', () => map.flyTo([c.lat, c.lng], 12, { duration: 1.2 }));
     chipBox.appendChild(b);
   });
+
+
+  /* ===== 主题（浅/深/跟随系统）===== */
+  const __mq = window.matchMedia('(prefers-color-scheme: dark)');
+  function __themePref() { try { return localStorage.getItem('openmap-theme') || 'light'; } catch (e) { return 'light'; } }
+  function applyTheme() {
+    const t = __themePref();
+    const eff = t === 'auto' ? (__mq.matches ? 'dark' : 'light') : t;
+    document.documentElement.setAttribute('data-theme', eff);
+    document.querySelectorAll('#themeSeg button').forEach((b) => b.classList.toggle('active', b.dataset.t === t));
+  }
+  document.querySelectorAll('#themeSeg button').forEach((b) => b.addEventListener('click', () => {
+    try { localStorage.setItem('openmap-theme', b.dataset.t); } catch (e) {}
+    applyTheme();
+  }));
+  __mq.addEventListener ? __mq.addEventListener('change', applyTheme) : __mq.addListener(applyTheme);
+  applyTheme();
 
   /* ===== 提示条 / 经纬度 ===== */
   let toastTimer = null;
