@@ -2,146 +2,127 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>开源地图 · 网页版</title>
-<link rel="icon" href="favicon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0f766e">
+<title>开源地图</title>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <style>
-  :root { --brand:#0f766e; --brand-light:#14b8a6; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body { margin: 0; display: flex; overflow: hidden; color: var(--text);
-         font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif; }
+  :root { --brand:#0f766e; --brand-light:#14b8a6; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; margin:0; overflow:hidden; }
+  body { font-family:"Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif; color:#0f172a; }
+  #map { position:absolute; inset:0; background:#dfe6ec; }
+  .hidden { display:none !important; }
 
-  /* ===== 侧边栏 ===== */
-  #sidebar { width: 320px; min-width: 320px; display: flex; flex-direction: column;
-             background: #fff; border-right: 1px solid var(--border); z-index: 1000; }
-  .brand { display: flex; align-items: center; gap: 12px; padding: 18px 16px;
-           background: linear-gradient(135deg, var(--brand-light), var(--brand)); color: #fff; }
-  .brand .logo { font-size: 30px; }
-  .brand h1 { margin: 0; font-size: 20px; letter-spacing: .02em; }
-  .brand p { margin: 2px 0 0; font-size: 12px; opacity: .9; }
+  /* ===== 顶栏 ===== */
+  .topbar { position:absolute; top:0; left:0; right:0; z-index:1100;
+            padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 8px; }
+  .brandline { display:flex; align-items:center; gap:6px; color:#fff; font-size:14px; font-weight:600;
+               text-shadow:0 1px 4px rgba(0,0,0,.35); margin:0 2px 8px; }
+  .search-box { display:flex; gap:8px; }
+  .search-box input { flex:1; min-width:0; padding:12px 16px; border:none; border-radius:14px; font-size:15px;
+                      outline:none; background:#fff; box-shadow:0 3px 12px rgba(0,0,0,.18);
+                      -webkit-appearance:none; appearance:none; }
+  .search-box button { width:48px; border:none; border-radius:14px; background:var(--brand); color:#fff;
+                       font-size:18px; box-shadow:0 3px 12px rgba(0,0,0,.18); }
+  .results { list-style:none; margin:10px 0 0; padding:0; background:#fff; border-radius:14px;
+             box-shadow:0 6px 20px rgba(0,0,0,.22); max-height:46vh; overflow-y:auto; }
+  .results li { padding:11px 14px; border-bottom:1px solid #eef2f7; }
+  .results li:last-child { border-bottom:none; }
+  .r-title { font-size:14px; font-weight:600; }
+  .r-sub { font-size:12px; color:#64748b; margin-top:2px; }
+  .status { display:inline-block; margin-top:8px; padding:8px 14px; background:rgba(255,255,255,.95);
+            border-radius:12px; font-size:13px; color:#475569; box-shadow:0 3px 12px rgba(0,0,0,.15); }
 
-  .panel { padding: 14px 16px; border-bottom: 1px solid var(--border); }
-  .panel h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .08em; }
-  .scroll { flex: 1; overflow-y: auto; }
+  /* ===== 悬浮按钮 ===== */
+  .fab { position:absolute; z-index:1100; width:54px; height:54px; border-radius:50%; border:none;
+         background:#fff; box-shadow:0 4px 16px rgba(0,0,0,.28); font-size:22px;
+         display:flex; align-items:center; justify-content:center; }
+  .fab:active { transform:scale(.94); }
+  #layerBtn { left:16px; bottom:calc(env(safe-area-inset-bottom,0px) + 20px); }
+  #locateBtn { right:16px; bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
+               background:var(--brand); color:#fff; font-size:24px; }
 
-  /* ===== 搜索 ===== */
-  .search-box { display: flex; gap: 8px; }
-  .search-box input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
-                      font-size: 14px; outline: none; transition: border-color .15s, box-shadow .15s; }
-  .search-box input:focus { border-color: var(--brand-light); box-shadow: 0 0 0 3px rgba(20,184,166,.18); }
-  .search-box button { width: 44px; border: none; border-radius: 10px; background: var(--brand);
-                       color: #fff; font-size: 17px; cursor: pointer; }
-  .search-box button:hover { background: var(--brand-light); }
-  .results { list-style: none; margin: 10px 0 0; padding: 0; max-height: 280px; overflow-y: auto;
-             border: 1px solid var(--border); border-radius: 10px; }
-  .results li { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
-  .results li:last-child { border-bottom: none; }
-  .results li:hover { background: #f0fdfa; }
-  .r-title { font-size: 14px; font-weight: 600; }
-  .r-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .status { margin-top: 10px; font-size: 13px; color: var(--muted); }
-  .hidden { display: none !important; }
-
-  /* ===== 图层卡片 ===== */
-  .layer-card { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 8px;
-                padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px;
-                background: #fff; font-size: 14px; cursor: pointer; text-align: left; }
-  .layer-card .ic { font-size: 18px; }
-  .layer-card:hover { border-color: var(--brand-light); }
-  .layer-card.active { border-color: var(--brand); background: #f0fdfa; font-weight: 600; }
-
-  /* ===== 城市快捷 ===== */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; background: #fff;
-          font-size: 13px; cursor: pointer; }
-  .chip:hover { border-color: var(--brand); color: var(--brand); }
-
-  .btn { width: 100%; padding: 11px; border: none; border-radius: 10px; background: var(--brand);
-         color: #fff; font-size: 14px; cursor: pointer; }
-  .btn:hover { background: var(--brand-light); }
-
-  .foot { padding: 12px 16px; font-size: 11px; line-height: 1.7; color: var(--muted);
-          border-top: 1px solid var(--border); }
-  .foot a { color: var(--brand); text-decoration: none; }
-
-  /* ===== 地图区 ===== */
-  #mapwrap { position: relative; flex: 1; }
-  #map { position: absolute; inset: 0; background: #dfe6ec; }
-  #coords { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 900;
-            padding: 5px 14px; border-radius: 999px; background: rgba(15,23,42,.72); color: #fff;
-            font-size: 12px; font-family: Consolas, monospace; }
-  #toast { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 1200;
-           padding: 9px 18px; border-radius: 999px; background: rgba(15,23,42,.85); color: #fff; font-size: 13px; }
+  /* ===== 底部抽屉 ===== */
+  #backdrop { position:fixed; inset:0; z-index:1200; background:rgba(15,23,42,.4);
+              opacity:0; pointer-events:none; transition:opacity .25s; }
+  #backdrop.show { opacity:1; pointer-events:auto; }
+  #sheet { position:fixed; left:0; right:0; bottom:0; z-index:1300; background:#fff;
+           border-radius:20px 20px 0 0; padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 18px);
+           transform:translateY(105%); transition:transform .28s; max-height:72vh; overflow-y:auto;
+           box-shadow:0 -6px 24px rgba(0,0,0,.2); }
+  #sheet.open { transform:none; }
+  .handle { width:40px; height:4px; border-radius:2px; background:#cbd5e1; margin:4px auto 14px; }
+  #sheet h2 { margin:0 0 10px; font-size:13px; color:#64748b; letter-spacing:.08em; }
+  .layers { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  .layer-card { display:flex; align-items:center; gap:8px; padding:11px 10px; border:1.5px solid #e2e8f0;
+                border-radius:12px; background:#fff; font-size:13px; text-align:left; }
+  .layer-card .ic { font-size:17px; }
+  .layer-card.active { border-color:var(--brand); background:#f0fdfa; font-weight:600; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { padding:8px 16px; border:1px solid #e2e8f0; border-radius:999px; background:#fff; font-size:13px; }
+  .chip:active { background:#f0fdfa; }
+  .about { margin-top:18px; font-size:11px; line-height:1.7; color:#94a3b8; }
 </style>
 </head>
 <body>
-  <aside id="sidebar">
-    <header class="brand">
-      <div class="logo">🗺️</div>
-      <div>
-        <h1>开源地图</h1>
-        <p>OpenStreetMap · 中国街道级</p>
-      </div>
-    </header>
+  <div id="map"></div>
 
-    <section class="panel search-panel">
-      <form id="searchForm" class="search-box">
-        <input id="searchInput" type="search" placeholder="搜索地点，如：天安门" autocomplete="off">
-        <button type="submit" title="搜索">🔍</button>
-      </form>
-      <div id="searchStatus" class="status hidden"></div>
-      <ul id="results" class="results hidden"></ul>
-    </section>
+  <div class="topbar">
+    <p class="brandline">🗺️ 开源地图 <span style="font-weight:400;opacity:.85">· 离线数据已内置</span></p>
+    <form id="searchForm" class="search-box">
+      <input id="searchInput" type="search" placeholder="搜索地点，如：外滩" autocomplete="off">
+      <button type="submit" title="搜索">🔍</button>
+    </form>
+    <div id="searchStatus" class="status hidden"></div>
+    <ul id="results" class="results hidden"></ul>
+  </div>
 
-    <div class="scroll">
-      <section class="panel">
-        <h2>底图图层</h2>
-        <div id="layerList"></div>
-      </section>
-      <section class="panel">
-        <h2>公共交通</h2>
-        <div class="chips">
-          <button id="metroBtn" type="button" class="chip">🚇 轨道交通</button>
-          <button id="corridorBtn" type="button" class="chip">🚌 公交走廊</button>
-          <button id="svBtn" type="button" class="chip">📷 街景</button>
-        </div>
-        <p id="transitHint" class="status" style="margin-top:10px"></p>
-        <div id="transitLegend" class="hidden" style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.9"></div>
-      </section>
-      <section class="panel">
-        <h2>置业参考（housing 采集 + 通勤站点）</h2>
-        <div class="chips">
-          <button id="houseBtn" type="button" class="chip">🏠 低价房源</button>
-          <button id="stationBtn" type="button" class="chip">🚏 通勤站点</button>
-          <button id="lowCityBtn" type="button" class="chip">🌍 低价城市</button>
+  <button id="layerBtn" class="fab" type="button" aria-label="图层与快捷定位">🗺️</button>
+  <button id="locateBtn" class="fab" type="button" aria-label="定位我的位置">📍</button>
+
+  <div id="backdrop"></div>
+  <div id="sheet">
+    <div class="handle"></div>
+    <h2>底图图层</h2>
+    <div id="layerList" class="layers"></div>
+    <h2>公共交通</h2>
+    <div class="chips" style="margin-bottom:14px">
+      <button id="metroBtn" type="button" class="chip">🚇 轨道交通</button>
+      <button id="corridorBtn" type="button" class="chip">🚌 公交走廊</button>
+      <button id="svBtn" type="button" class="chip">📷 街景</button>
+    </div>
+    <p id="transitHint" class="status hidden"></p>
+    <div id="transitLegend" class="hidden" style="font-size:11px;color:#64748b;line-height:1.9"></div>
+    <h2>置业参考（housing 采集 + 通勤站点）</h2>
+    <div class="chips" style="margin-bottom:14px">
+      <button id="houseBtn" type="button" class="chip">🏠 低价房源</button>
+      <button id="stationBtn" type="button" class="chip">🚏 通勤站点</button>
+      <button id="lowCityBtn" type="button" class="chip">🌍 低价城市</button>
           <button id="townBtn" type="button" class="chip">🌡️ 镇街均价</button>
-        </div>
-        <p id="houseHint" class="status hidden" style="margin-top:10px"></p>
-      </section>
-      <section class="panel">
-        <h2>通勤可达分析（接驳 + 干线多模式）</h2>
-        <div class="chips">
-          <button id="commuteBtn" type="button" class="chip">🧮 设上班地点</button>
-          <button id="commuteClear" type="button" class="chip hidden">🗑 清除</button>
-        </div>
-        <div id="commuteOpts" class="hidden" style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-          <label style="font-size:13px;color:var(--muted)">接驳方式
-            <select id="feederMode" style="margin-left:8px;padding:6px;border:1px solid var(--border);border-radius:8px">
-              <option value="ebike">电动车 22km/h（≤6km）</option>
-              <option value="walk">步行 4.8km/h（≤1.5km）</option>
-            </select></label>
-          <label style="font-size:13px;color:var(--muted)">总通勤上限
-            <select id="commuteMax" style="margin-left:8px;padding:6px;border:1px solid var(--border);border-radius:8px">
-              <option value="45">45 分钟</option>
-              <option value="60">60 分钟</option>
-              <option value="75">75 分钟</option>
-              <option value="90">90 分钟</option>
-            </select></label>
-        </div>
+    </div>
+    <p id="houseHint" class="status hidden" style="margin-bottom:14px"></p>
+    <h2>通勤可达分析（接驳 + 干线多模式）</h2>
+    <div class="chips" style="margin-bottom:10px">
+      <button id="commuteBtn" type="button" class="chip">🧮 设上班地点</button>
+      <button id="commuteClear" type="button" class="chip hidden">🗑 清除</button>
+    </div>
+    <div id="commuteOpts" class="hidden" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;font-size:13px;color:#64748b">
+      <label>接驳方式
+        <select id="feederMode" style="margin-left:8px;padding:6px;border:1px solid #e2e8f0;border-radius:8px">
+          <option value="ebike">电动车 22km/h（≤6km）</option>
+          <option value="walk">步行 4.8km/h（≤1.5km）</option>
+        </select></label>
+      <label>总通勤上限
+        <select id="commuteMax" style="margin-left:8px;padding:6px;border:1px solid #e2e8f0;border-radius:8px">
+          <option value="45">45 分钟</option>
+          <option value="60">60 分钟</option>
+          <option value="75">75 分钟</option>
+          <option value="90">90 分钟</option>
+        </select></label>
+    </div>
 <div class="chips" style="margin-top:8px"><span style="font-size:12px;color:var(--muted);align-self:center">预设上班地:</span><button type="button" class="chip presetWork" data-lat="23.119" data-lng="113.322">珠江新城</button><button type="button" class="chip presetWork" data-lat="23.1338" data-lng="113.3199">体育西</button><button type="button" class="chip presetWork" data-lat="22.546" data-lng="114.0545">深圳福田</button><button type="button" class="chip presetWork" data-lat="22.5405" data-lng="113.9344">深圳科技园</button><button type="button" class="chip presetWork" data-lat="23.0218" data-lng="113.112">佛山祖庙</button><button type="button" class="chip presetWork" data-lat="23.0207" data-lng="113.7518">东莞南城</button><button type="button" class="chip presetWork" data-lat="22.5159" data-lng="113.3926">中山石岐</button></div>
-        <div id="commuteInfo" class="status hidden" style="margin-top:10px;line-height:1.9"></div>
+    <p id="commuteInfo" class="status hidden" style="line-height:1.9;margin-bottom:14px"></p>
         <div class="chips" style="margin-top:10px">
           <button id="rankBtn" type="button" class="chip">💎 性价比排行</button>
           <button id="rankCopy" type="button" class="chip hidden">📋 复制榜单</button>
@@ -161,53 +142,60 @@
           <div id="rankList" style="max-height:300px;overflow-y:auto"></div>
           <div id="rankTownStats" style="margin-top:8px;color:var(--muted)"></div>
         </div>
-      </section>
-      <section class="panel">
-        <h2>路线规划（离线路网 · A* / Dijkstra / 双向）</h2>
-        <div class="chips">
-          <button id="routeBtn" type="button" class="chip">🧭 开始规划</button>
-          <button id="routeClear" type="button" class="chip hidden">🗑 清除</button>
+    <h2>路线规划（离线 · A*/Dijkstra/双向）</h2>
+    <div class="chips" style="margin-bottom:10px">
+      <button id="routeBtn" type="button" class="chip">🧭 开始规划</button>
+      <button id="routeClear" type="button" class="chip hidden">🗑 清除</button>
+    </div>
+    <div id="routeOpts" class="hidden" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;font-size:13px;color:#64748b">
+      <label>策略
+        <select id="routeMode" style="margin-left:8px;padding:6px;border:1px solid #e2e8f0;border-radius:8px">
+          <option value="fastest">最快（按等级限速）</option>
+          <option value="shortest">最短距离</option>
+          <option value="nohighway">避开高速</option>
+        </select></label>
+      <label>算法
+        <select id="routeAlgo" style="margin-left:8px;padding:6px;border:1px solid #e2e8f0;border-radius:8px">
+          <option value="astar">A*（启发式）</option>
+          <option value="dijkstra">Dijkstra（基准）</option>
+          <option value="bi">双向 Dijkstra</option>
+        </select></label>
+    </div>
+    <p id="routeInfo" class="status hidden" style="line-height:1.8"></p>
+    <details id="routeStepsBox" class="hidden" style="font-size:12px;color:#64748b;margin-bottom:14px">
+      <summary style="cursor:pointer">转向指令</summary>
+      <ol id="routeSteps" style="margin:8px 0 0;padding-left:20px;line-height:2"></ol>
+    </details>
+    <h2>快速定位 · 城市快捷方式</h2>
+    <div id="cityChips" class="chips"></div>
+    
+    <h2>⚙️ 数据与更新</h2>
+    <div id="dlBox">
+      <p id="buildInfo" style="margin:0 0 8px;font-size:12px;color:#64748b">读取中…</p>
+      <div id="offlineList" style="font-size:11px;color:#94a3b8;margin-bottom:10px;line-height:1.7"></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div>
+          <div style="font-size:13px">📦 transit 数据包（6MB · 地铁/走廊/站点/房源）</div>
+          <button id="dlTransit" type="button" class="chip" style="margin-top:6px">⬇ 下载并安装</button>
+          <progress id="pgTransit" max="100" value="0" style="width:100%;margin-top:4px"></progress>
         </div>
-        <div id="routeOpts" class="hidden" style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
-          <label style="font-size:13px;color:var(--muted)">策略
-            <select id="routeMode" style="margin-left:8px;padding:6px;border:1px solid var(--border);border-radius:8px">
-              <option value="fastest">最快（按等级限速）</option>
-              <option value="shortest">最短距离</option>
-              <option value="nohighway">避开高速</option>
-            </select></label>
-          <label style="font-size:13px;color:var(--muted)">算法
-            <select id="routeAlgo" style="margin-left:8px;padding:6px;border:1px solid var(--border);border-radius:8px">
-              <option value="astar">A*（启发式）</option>
-              <option value="dijkstra">Dijkstra（基准）</option>
-              <option value="bi">双向 Dijkstra</option>
-            </select></label>
+        <div>
+          <div style="font-size:13px">🛣️ 路网图 roads.js（36MB · 导航用）</div>
+          <button id="dlRoads" type="button" class="chip" style="margin-top:6px">⬇ 下载并安装</button>
+          <progress id="pgRoads" max="100" value="0" style="width:100%;margin-top:4px"></progress>
         </div>
-        <div id="routeInfo" class="status hidden" style="margin-top:10px;line-height:1.8"></div>
-        <details id="routeStepsBox" class="hidden" style="margin-top:8px;font-size:12px;color:var(--muted)">
-          <summary style="cursor:pointer">转向指令</summary>
-          <ol id="routeSteps" style="margin:8px 0 0;padding-left:20px;line-height:2"></ol>
-        </details>
-      </section>
-      <section class="panel">
-        <h2>快速定位 · 城市快捷方式</h2>
-        <div id="cityChips" class="chips"></div>
-      </section>
-      <section class="panel">
-        <button id="locateBtn" class="btn" type="button">📍 定位我的位置</button>
-      </section>
+      </div>
+      <input id="mirrorBase" placeholder="镜像前缀（可选，如 https://ghproxy.net/）"
+             style="width:100%;margin-top:10px;padding:8px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px">
+      <p class="about" style="margin-top:8px">下载源：GitHub Releases（github.com/PT123123/open-map）。
+        下载写入应用专属目录并即时生效（优先于内置数据）。瓦片体积大（约 390MB），请用电脑按 docs/DATA.md 构建。</p>
     </div>
 
-    <footer class="foot">
-      地图数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap 贡献者</a>（ODbL 开源协议）<br>
-      地址搜索由 Nominatim 提供 · 图层：OSM / Esri / OpenTopoMap
-    </footer>
-  </aside>
-
-  <main id="mapwrap">
-    <div id="map"></div>
-    <div id="coords">点击地图查看经纬度</div>
-    <div id="toast" class="hidden"></div>
-  </main>
+    <p class="about">📦 离线覆盖：广东以外仅保留全国行政轮廓（3-4 级）+ 广东全省县市概览（5-7 级）+ 珠三角全域（广佛深莞惠珠中江清远）9-13 级 + 组团 14 级 + 核心区 15 级 + 建成区 16 级（广州全区含黄埔/科学城/知识城）+ 广州重点片区 17 级（黄埔大沙地·科学城、天河CBD、越秀老城）。<br>
+      离线区域内完全免流量；未覆盖区域联网时自动加载在线瓦片。<br>
+      离线瓦片数据 © OpenStreetMap 贡献者（ODbL），经 openstreetmap.de 镜像渲染，个人演示用途。<br>
+      在线图层：OSM / Esri / OpenTopoMap · 搜索由 Nominatim 提供（需联网）。</p>
+  </div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
   <script>
@@ -227,26 +215,30 @@
     { name: '清远', lat: 23.6820, lng: 113.0560 }
   ];
 
-  const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> 贡献者';
+  const OSM_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> 贡献者';
+  const OSMDE_FALLBACK = 'https://a.tile.openstreetmap.de/{z}/{x}/{y}.png';
+
   const BASE_LAYERS = {
+    off:     { title: '离线地图（内置）', icon: '📦', url: 'tiles/{z}/{x}/{y}.png',
+               opts: { minZoom: 3, maxZoom: 19, maxNativeZoom: 17,
+                       attribution: '内置离线瓦片 · 数据 &copy; OpenStreetMap 贡献者（ODbL）' } },
     osm:     { title: 'OSM 标准地图', icon: '🗺️', url: 'https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png',
                opts: { subdomains: 'abc', maxZoom: 18, attribution: OSM_ATTR } },
     sat:     { title: '卫星影像', icon: '🛰️', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-               opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics' } },
+               opts: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } },
     topo:    { title: '等高地形图', icon: '⛰️', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
-               opts: { subdomains: 'abc', maxZoom: 17, attribution: '数据 &copy; OpenStreetMap 贡献者，SRTM | 渲染 &copy; <a href="https://opentopomap.org" target="_blank">OpenTopoMap</a> (CC-BY-SA)' } }
+               opts: { subdomains: 'abc', maxZoom: 17, attribution: '数据 &copy; OpenStreetMap，渲染 &copy; OpenTopoMap' } }
   };
 
   /* ===== 地图初始化 ===== */
   const map = L.map('map', { zoomControl: false, worldCopyJump: true });
-  L.control.zoom({ position: 'topright' }).addTo(map);
   L.control.scale({ imperial: false }).addTo(map);
 
   try {
     const v = JSON.parse(localStorage.getItem('openmap-view') || 'null');
     if (v && isFinite(v.lat) && isFinite(v.lng) && isFinite(v.z)) map.setView([v.lat, v.lng], v.z);
-    else map.setView([35.86, 104.19], 4);  // 初始：中国全图
-  } catch (e) { map.setView([35.86, 104.19], 4); }
+    else map.setView([22.93, 113.70], 8);  // 初始：珠三角
+  } catch (e) { map.setView([22.93, 113.70], 8); }
 
   map.on('moveend zoomend', () => {
     try { localStorage.setItem('openmap-view', JSON.stringify({ lat: map.getCenter().lat, lng: map.getCenter().lng, z: map.getZoom() })); } catch (e) {}
@@ -254,14 +246,27 @@
 
   let current = null;
   function setBase(key, save) {
-    if (!BASE_LAYERS[key]) key = 'osm';
+    if (!BASE_LAYERS[key]) key = 'off';
     if (current) map.removeLayer(current);
-    current = L.tileLayer(BASE_LAYERS[key].url, BASE_LAYERS[key].opts).addTo(map);
+    const cfg = BASE_LAYERS[key];
+    current = L.tileLayer(cfg.url, cfg.opts).addTo(map);
+    if (key === 'off') {
+      // 内置瓦片未覆盖时，联网状态下自动回退在线瓦片
+      current.on('tileerror', (e) => {
+        const tile = e.tile;
+        if (tile.dataset && tile.dataset.fb) return;
+        const m = String(tile.src || '').match(/tiles\/(\d+)\/(\d+)\/(\d+)\.png$/);
+        if (m) {
+          if (tile.dataset) tile.dataset.fb = '1';
+          tile.src = OSMDE_FALLBACK.replace('{z}', m[1]).replace('{x}', m[2]).replace('{y}', m[3]);
+        }
+      });
+    }
     document.querySelectorAll('.layer-card').forEach((el) => el.classList.toggle('active', el.dataset.key === key));
     if (save !== false) { try { localStorage.setItem('openmap-base', key); } catch (e) {} }
   }
 
-  /* ===== 侧边栏 UI ===== */
+  /* ===== 抽屉 UI ===== */
   const layerList = $('#layerList');
   Object.entries(BASE_LAYERS).forEach(([key, cfg]) => {
     const btn = document.createElement('button');
@@ -274,46 +279,54 @@
     btn.addEventListener('click', () => setBase(key));
     layerList.appendChild(btn);
   });
-  setBase(localStorage.getItem('openmap-base'), false);
+
+  let storedBase = null;
+  try { storedBase = localStorage.getItem('openmap-base'); } catch (e) {}
+  setBase(storedBase, false);  // 无记录时默认离线图层
 
   const chipBox = $('#cityChips');
   CITIES.forEach((c) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.textContent = c.name;
-    b.addEventListener('click', () => map.flyTo([c.lat, c.lng], 12, { duration: 1.2 }));
+    b.addEventListener('click', () => { closeSheet(); map.flyTo([c.lat, c.lng], 12, { duration: 1.2 }); });
     chipBox.appendChild(b);
   });
+
+  const sheet = $('#sheet'), backdrop = $('#backdrop');
+  function openSheet() { sheet.classList.add('open'); backdrop.classList.add('show'); }
+  function closeSheet() { sheet.classList.remove('open'); backdrop.classList.remove('show'); }
+  $('#layerBtn').addEventListener('click', openSheet);
+  backdrop.addEventListener('click', closeSheet);
 
   /* ===== 提示条 / 经纬度 ===== */
   let toastTimer = null;
   function toast(msg) {
-    const el = $('#toast');
+    const el = $('#toast') || (() => { const d = document.createElement('div'); d.id = 'toast';
+      d.style.cssText = 'position:absolute;top:calc(env(safe-area-inset-top,0px) + 110px);left:50%;transform:translateX(-50%);z-index:1400;padding:9px 18px;border-radius:999px;background:rgba(15,23,42,.85);color:#fff;font-size:13px;white-space:nowrap;max-width:86%;text-align:center';
+      document.body.appendChild(d); return d; })();
     el.textContent = msg;
     el.classList.remove('hidden');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.add('hidden'), 2600);
+    toastTimer = setTimeout(() => el.classList.add('hidden'), 2400);
   }
 
   map.on('click', (e) => {
-    // 点击房源点附近（60m）优先弹房源详情
     if (houseLayer && window.HOUSING) {
       const hit = nearestHouse(e.latlng.lat, e.latlng.lng);
       if (hit && hit.dist < 60) {
         const fm = FEEDER[$('#feederMode').value];
-        const c = (commuteState.arrive && commuteState.gT)
-          ? window.Router.commuteFor(commuteState.gT, commuteState.arrive, hit.p.ns, hit.p.lat, hit.p.lon, fm.kmh, fm.maxM, 300) : null;
-        const m = c ? c.total / 60 : null;
-        L.popup({ maxWidth: 280 }).setLatLng(e.latlng).setContent(housePopup(hit.p, c, m, fm)).openOn(map);
+        const cc = (commuteState.origin && window.TRAFFIC_GRAPH) ? window.Router.commuteFor(window.TRAFFIC_GRAPH, commuteState.arrive || [], hit.p.ns, hit.p.lat, hit.p.lon, fm.kmh, fm.maxM, 300) : null;
+        L.popup({ maxWidth: 260 }).setLatLng(e.latlng).setContent(housePopup(hit.p, cc, cc ? cc.total / 60 : null, fm)).openOn(map);
         return;
       }
     }
     if (commuteState.on) { commuteClick(e.latlng); return; }
     if (routeState.on && routeState.g) { routeClick(e.latlng); return; }
-    $('#coords').textContent = '经纬度：' + e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5);
+    toast('经纬度：' + e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5));
   });
 
-  /* ===== 通勤可达分析（接驳 + 干线多模式，房源按总通勤分色）===== */
-  const commuteState = { on: false, gT: null, arrive: null, origin: null, marker: null, houseRepaint: false, stats: null };
+  /* ===== 通勤可达分析（接驳 + 干线多模式，全离线）===== */
+  const commuteState = { on: false, origin: null, marker: null };
 
   const FEEDER = {
     ebike: { kmh: 22, maxM: 6000, label: '电动车' },
@@ -324,7 +337,6 @@
     if (commuteState.on) { commuteClearAll(); return; }
     $('#commuteBtn').textContent = '⏳ 加载数据…';
     try {
-      if (!window.ROAD_NET) { /* 不需要路网 */ }
       if (!window.HOUSING) await loadScript('transit/housing.js');
       if (!window.STATIONS_MAP) await loadScript('transit/stations.js');
       if (!window.TRAFFIC_GRAPH) await loadScript('transit/tgraph.js');
@@ -333,25 +345,20 @@
       $('#commuteBtn').textContent = '🧮 点击地图设上班地点';
       $('#commuteOpts').classList.remove('hidden');
       $('#commuteClear').classList.remove('hidden');
-      routeHint('');
-      $('#commuteInfo').textContent = '点击地图设置上班地点（自动按接驳+干线计算全部房源通勤）';
+      $('#commuteInfo').textContent = '点击地图设置上班地点';
       $('#commuteInfo').classList.remove('hidden');
     } catch (e) {
       $('#commuteBtn').textContent = '🧮 设上班地点';
-      $('#commuteInfo').textContent = '数据加载失败：' + e.message;
+      $('#commuteInfo').textContent = '数据加载失败';
       $('#commuteInfo').classList.remove('hidden');
     }
   }
 
-  function commuteColor(min, maxMin) { return min <= maxMin * 0.67 ? '#16a34a' : min <= maxMin ? '#ca8a04' : '#ea580c'; }
-
   async function commuteClick(latlng) {
-    const gT = commuteState.gT;
     const fm = FEEDER[$('#feederMode').value];
     const maxMin = +$('#commuteMax').value;
     $('#commuteInfo').textContent = '计算中…';
     await new Promise((r) => setTimeout(r, 30));
-    // 懒加载干线图与引擎
     if (!window.TRAFFIC_GRAPH) await loadScript('transit/tgraph.js');
     const gT2 = window.TRAFFIC_GRAPH;
     if (!window.STATIONS_MAP) await loadScript('transit/stations.js');
@@ -360,24 +367,20 @@
     const t0 = performance.now();
     const r = window.Router.multiRoute(gT2, stations, latlng.lat, latlng.lng, fm.kmh, fm.maxM, 300);
     const calcMs = Math.round(performance.now() - t0);
-    commuteState.gT = gT2; commuteState.arrive = r.arrive;
     commuteState.origin = latlng;
     if (commuteState.marker) map.removeLayer(commuteState.marker);
     commuteState.marker = L.circleMarker(latlng, { radius: 8, color: '#fff', weight: 2, fillColor: '#7c3aed', fillOpacity: 1 })
       .bindPopup('🏢 上班地点').addTo(map);
-    // 房源评分 + 分色重绘
-    const buckets = { green: 0, yellow: 0, orange: 0, over: 0, unreachable: 0 };
+    const buckets = { ok: 0, over: 0, unreach: 0 };
     let best = null;
     const repaint = houseLayer !== null;
     if (repaint) { map.removeLayer(houseLayer); houseLayer = L.layerGroup(); }
     for (const p of window.HOUSING.pts) {
       const c = window.Router.commuteFor(gT2, r.arrive, p.ns, p.lat, p.lon, fm.kmh, fm.maxM, 300);
       const m = c ? c.total / 60 : Infinity;
-      let color;
-      if (!c) { color = '#94a3b8'; buckets.unreachable++; }
-      else if (m <= maxMin * 0.67) { color = '#16a34a'; buckets.green++; }
-      else if (m <= maxMin) { color = '#ca8a04'; buckets.yellow++; }
-      else { color = '#ea580c'; buckets.over++; }
+      if (!c) buckets.unreach++;
+      else if (m <= maxMin) buckets.ok++;
+      else buckets.over++;
       if (c && (!best || c.total < best.c.total)) best = { p, c, m };
       if (repaint) {
         L.circleMarker([p.lat, p.lon], {
@@ -387,14 +390,11 @@
       }
     }
     if (repaint) houseLayer.addTo(map);
-    const totalOk = buckets.green + buckets.yellow;
     $('#commuteInfo').innerHTML =
-      '<b>上班地点已设</b>（' + fm.label + '接驳 ≤' + (fm.maxM / 1000) + 'km，含候车 5 分钟）<br>' +
-      '≤' + Math.round(maxMin * 0.67) + ' 分钟: <b style="color:#16a34a">' + buckets.green + '</b> 套 · ' +
-      '≤' + maxMin + ' 分钟: <b style="color:#ca8a04">' + totalOk + '</b> 套 · ' +
-      '超时: ' + buckets.over + ' · 不可达: ' + buckets.unreachable + '<br>' +
+      '<b>上班地点已设</b>（' + fm.label + '接驳，含候车 5 分钟）<br>' +
+      '≤' + maxMin + ' 分钟: <b style="color:#16a34a">' + buckets.ok + '</b> 套 · 超时: ' + buckets.over + ' · 不可达: ' + buckets.unreach + '<br>' +
       (best ? '最快样本: <b>' + best.p.community + '</b>（' + best.p.total + ' 万）总通勤 <b>' + best.m.toFixed(0) + ' 分钟</b><br>' : '') +
-      '<span style="font-size:12px">干线计算 ' + calcMs + 'ms · 房源开启时自动按通勤分色重绘</span>';
+      '<span style="font-size:12px">干线计算 ' + calcMs + 'ms（路网/站点全离线）</span>';
         // 可达干线站点可视化（等时圈：按到达时间分色）
     if (commuteState.stLayer) { map.removeLayer(commuteState.stLayer); }
     commuteState.stLayer = L.layerGroup();
@@ -434,21 +434,18 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
   }
 
   function commuteClearAll() {
-    commuteState.on = false; commuteState.arrive = null; commuteState.origin = null;
+    commuteState.on = false; commuteState.origin = null;
     if (commuteState.marker) { map.removeLayer(commuteState.marker); commuteState.marker = null; }
     if (commuteState.stLayer) { map.removeLayer(commuteState.stLayer); commuteState.stLayer = null; }
     $('#commuteBtn').textContent = '🧮 设上班地点';
     $('#commuteOpts').classList.add('hidden');
     $('#commuteClear').classList.add('hidden');
     $('#commuteInfo').classList.add('hidden');
-    // 房源恢复价格分色
     if (houseLayer && window.HOUSING) {
       map.removeLayer(houseLayer);
       houseLayer = L.layerGroup();
       for (const p of window.HOUSING.pts) {
-        L.circleMarker([p.lat, p.lon], { renderer: houseRenderer, radius: 4, color: '#fff', weight: 1, fillColor: houseColor(p.total), fillOpacity: 0.9 })
-          .bindPopup(housePopup(p, null, null, null))
-          .bindTooltip(p.community + ' ' + p.total + '万')
+        L.circleMarker([p.lat, p.lon], { renderer: houseRenderer, radius: 4, color: '#fff', weight: 1, fillColor: houseColor(p.total), fillOpacity: 0.9, interactive: false })
           .addTo(houseLayer);
       }
       houseLayer.addTo(map);
@@ -459,6 +456,76 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
   $('#commuteClear').addEventListener('click', commuteClearAll);
   $('#feederMode').addEventListener('change', () => { if (commuteState.origin) commuteClick(commuteState.origin); });
   $('#commuteMax').addEventListener('change', () => { if (commuteState.origin) commuteClick(commuteState.origin); });
+
+
+  /* ===== ⚙️ 数据与更新（AndroidBridge）===== */
+  if (window.AndroidBridge) {
+    const BASE_DEFAULT = 'https://github.com/PT123123/open-map/releases/download/v3.0/';
+    let mirrorBase = '';
+    try { mirrorBase = localStorage.getItem('openmap-mirror') || ''; } catch (e) {}
+    const dlUrl = (f) => (mirrorBase || '') + BASE_DEFAULT + f;
+
+    const bi = JSON.parse(AndroidBridge.getBuildInfo());
+    const biEl = $('#buildInfo');
+    if (biEl) biEl.textContent = '内置数据版本 v' + bi.version + ' · 更新目录: ' + bi.offlineDir;
+
+    function refreshOfflineList() {
+      const el = $('#offlineList');
+      if (!el) return;
+      try {
+        const arr = JSON.parse(AndroidBridge.listOffline());
+        el.innerHTML = arr.length
+          ? '已安装更新: ' + arr.map((f) => f.path + '（' + Math.round(f.size / 1024) + 'KB）').join('、')
+          : '未安装任何更新（使用内置数据）';
+      } catch (e) { el.textContent = '读取失败'; }
+    }
+    refreshOfflineList();
+
+    const mirrorEl = $('#mirrorBase');
+    if (mirrorEl) {
+      mirrorEl.value = mirrorBase;
+      mirrorEl.addEventListener('change', () => {
+        mirrorBase = mirrorEl.value.trim();
+        try { localStorage.setItem('openmap-mirror', mirrorBase); } catch (e) {}
+      });
+    }
+
+    function hookDl(btnId, pgId, url, relPath, isZip, destDir) {
+      const btn = $(btnId), pg = $(pgId);
+      if (!btn || !pg) return;
+      btn.addEventListener('click', () => {
+        const st0 = AndroidBridge.startDownload(dlUrl(url), relPath);
+        if (st0 === 'already') { pg.value = 100; return; }
+        btn.disabled = true;
+        const timer = setInterval(() => {
+          const p = AndroidBridge.getProgress(relPath);
+          if (p === 'done') {
+            clearInterval(timer);
+            pg.value = 100;
+            btn.disabled = false;
+            btn.textContent = '✓ 完成';
+            if (isZip) {
+              const uz = AndroidBridge.unzip(relPath, destDir);
+              toast('解压: ' + uz);
+            }
+            toast('✓ 更新已生效（即时）');
+            refreshOfflineList();
+          } else if (p.startsWith('error')) {
+            clearInterval(timer);
+            btn.disabled = false;
+            btn.textContent = '⬇ 重试';
+            toast('下载失败: ' + p.slice(6, 60));
+          } else if (p.endsWith('KB')) {
+            pg.removeAttribute('value');
+          } else {
+            pg.value = +p;
+          }
+        }, 800);
+      });
+    }
+    hookDl('#dlTransit', '#pgTransit', 'transit-offline.zip', 'transit-offline.zip', true, '');
+    hookDl('#dlRoads', '#pgRoads', 'roads.js', 'transit/roads.js', false, '');
+  }
 
   document.querySelectorAll('.presetWork').forEach((b) => b.addEventListener('click', async () => {
     if (!commuteState.on) await commuteToggle();
@@ -581,12 +648,12 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
   });
 
 
-  /* ===== 路线规划（离线路网 A-Star / Dijkstra / 双向）===== */
+  /* ===== 路线规划（离线路网，全离线可用）===== */
   const routeState = { on: false, g: null, a: null, b: null, line: null, mkA: null, mkB: null };
 
   function routeHint(msg) {
     const el = $('#routeInfo');
-    if (msg) { el.textContent = msg; el.classList.remove('hidden'); } else el.classList.add('hidden');
+    if (msg) { el.textContent = msg; el.classList.remove('hidden'); toast(msg); } else el.classList.add('hidden');
   }
 
   async function routeToggle() {
@@ -597,14 +664,14 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
       if (!window.Router) await loadScript('transit/routing.js');
       if (!routeState.g) {
         routeHint('解码路网图…');
-        await new Promise((r) => setTimeout(r, 50)); // 让提示先渲染
+        await new Promise((r) => setTimeout(r, 50));
         routeState.g = Router.loadGraph(window.ROAD_NET);
       }
       routeState.on = true;
       $('#routeBtn').textContent = '🧭 点击地图设起点';
       $('#routeOpts').classList.remove('hidden');
       $('#routeClear').classList.remove('hidden');
-      routeHint('路网就绪（' + routeState.g.nnodes + ' 节点 / ' + routeState.g.narcs + ' 边，解码 ' + routeState.g.decodeMs + 'ms）。点击地图设置起点。');
+      routeHint('路网就绪（' + routeState.g.nnodes + ' 节点）。点击地图设置起点。');
     } catch (err) {
       $('#routeBtn').textContent = '🧭 开始规划';
       routeHint('路网加载失败：' + err.message);
@@ -630,27 +697,28 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
     const g = routeState.g;
     const s = Router.snap(g, routeState.a.lat, routeState.a.lng);
     const t = Router.snap(g, routeState.b.lat, routeState.b.lng);
-    if (s < 0 || t < 0) { routeHint('附近 ' + (g.grid ? '8km' : '') + ' 内无道路节点'); return; }
+    if (s < 0 || t < 0) { routeHint('附近 8km 内无道路节点'); return; }
     const mode = $('#routeMode').value, algo = $('#routeAlgo').value;
     routeHint('计算中…（' + algo + ' / ' + mode + '）');
     setTimeout(() => {
       const r = Router.route(g, s, t, mode, algo);
-      if (!r.found) { routeHint('未找到可达路线（两附着点可能不连通）'); return; }
+      if (!r.found) { routeHint('未找到可达路线'); return; }
       const nodes = Router.nodePath(g, s, r.edges);
       nodes[0] = s;
       const coords = nodes.map((i) => [g.lat[i], g.lon[i]]);
       if (routeState.line) map.removeLayer(routeState.line);
       routeState.line = L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.9 }).addTo(map);
-      map.fitBounds(routeState.line.getBounds(), { padding: [40, 40] });
+      map.fitBounds(routeState.line.getBounds(), { padding: [60, 60] });
       const steps = Router.steps(g, nodes, r.edges);
       const isTime = mode !== 'shortest';
       $('#routeInfo').innerHTML =
         '<b>' + Router.fmtDist(r.totalDist) + '</b>' + (isTime ? ' · 约 <b>' + Router.fmtTime(r.totalTime) + '</b>' : '（里程最短）') + '<br>' +
-        '<span style="font-size:12px">算法 ' + algo + ' · 探索 ' + r.explored.toLocaleString() + ' 节点 · 计算 ' + r.ms + 'ms · 路网解码 ' + g.decodeMs + 'ms</span>';
+        '<span style="font-size:12px">算法 ' + algo + ' · 探索 ' + r.explored.toLocaleString() + ' 节点 · 计算 ' + r.ms + 'ms</span>';
       $('#routeSteps').innerHTML = steps.map((s2) => '<li>' + (s2.meters ? '前行 ' + Router.fmtDist(s2.meters) + ' → ' : '') + '<b>' + s2.cmd + '</b>' + (s2.road ? ' 进入 ' + s2.road : '') + '</li>').join('');
       $('#routeStepsBox').classList.remove('hidden');
       $('#routeBtn').textContent = '🧭 点击地图重设终点';
       routeHint('');
+      closeSheet();
     }, 30);
   }
 
@@ -671,7 +739,7 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
   $('#routeMode').addEventListener('change', () => { if (routeState.a && routeState.b) routeRun(); });
   $('#routeAlgo').addEventListener('change', () => { if (routeState.a && routeState.b) routeRun(); });
 
-  /* ===== 地点搜索（Nominatim / OpenStreetMap）===== */
+  /* ===== 地点搜索（Nominatim / OpenStreetMap，需联网）===== */
   const input = $('#searchInput'), resultsEl = $('#results'), statusEl = $('#searchStatus');
   let searchMarker = null, locateMarker = null, searchSeq = 0, debounceTimer = null;
 
@@ -704,7 +772,7 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
       resultsEl.classList.remove('hidden');
     } catch (err) {
       if (seq !== searchSeq) return;
-      statusEl.textContent = '搜索失败，请检查网络后重试';
+      statusEl.textContent = '搜索失败：需要联网（离线浏览不受影响）';
     }
   }
 
@@ -712,7 +780,7 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
     const lat = parseFloat(item.lat), lng = parseFloat(item.lon);
     if (item.boundingbox) {
       const b = item.boundingbox.map(Number);
-      if (b.length === 4 && b.every(isFinite)) map.fitBounds([[b[0], b[2]], [b[1], b[3]]], { padding: [40, 40], maxZoom: 17 });
+      if (b.length === 4 && b.every(isFinite)) map.fitBounds([[b[0], b[2]], [b[1], b[3]]], { padding: [60, 60], maxZoom: 17 });
       else map.flyTo([lat, lng], 16);
     } else map.flyTo([lat, lng], 16);
     if (searchMarker) map.removeLayer(searchMarker);
@@ -732,12 +800,12 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
     input.blur();
   });
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.search-panel')) { hideResults(); statusEl.classList.add('hidden'); }
+    if (!e.target.closest('.topbar')) { hideResults(); statusEl.classList.add('hidden'); }
   });
 
   /* ===== 定位 ===== */
   $('#locateBtn').addEventListener('click', () => {
-    if (!navigator.geolocation) { toast('当前环境不支持定位'); return; }
+    if (!navigator.geolocation) { toast('当前设备不支持定位'); return; }
     toast('正在定位…');
     navigator.geolocation.getCurrentPosition((pos) => {
       const la = pos.coords.latitude, lo = pos.coords.longitude;
@@ -748,11 +816,17 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
     }, (err) => toast('定位失败：' + err.message), { enableHighAccuracy: true, timeout: 10000 });
   });
 
-  /* ===== 公共交通图层（数据: OSM 贡献者 / Overpass）===== */
+  /* ===== 公共交通图层（数据: OSM 贡献者 / Overpass，内置离线）===== */
   map.createPane('corridors'); map.getPane('corridors').style.zIndex = 350;
   map.createPane('metro'); map.getPane('metro').style.zIndex = 380;
   const transitRenderer = L.canvas({ padding: 0.3, pane: 'corridors' });
-  let metroLayer = null, corridorLayer = null, metroLoading = false, corridorLoading = false;
+  let metroLayer = null, corridorLayer = null, transitLoading = {};
+
+  function showHint(msg) {
+    const el = $('#transitHint');
+    if (msg) { el.textContent = msg; el.classList.remove('hidden'); toast(msg); }
+    else el.classList.add('hidden');
+  }
 
   function loadScript(src) {
     return new Promise((ok, bad) => {
@@ -770,9 +844,9 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
 
   async function toggleMetro() {
     if (metroLayer) { map.removeLayer(metroLayer); metroLayer = null; return true; }
-    if (metroLoading) return false;
-    metroLoading = true;
-    $('#transitHint').textContent = '正在加载轨道数据…';
+    if (transitLoading.metro) return false;
+    transitLoading.metro = true;
+    showHint('正在加载轨道数据…');
     try {
       if (!window.TRANSIT_METRO) await loadScript('transit/metro.js');
       metroLayer = L.layerGroup();
@@ -791,7 +865,7 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
           pane: 'metro', color: ln.cls === 'rail' || ln.cls === 'intercity' ? (ln.colour || '#475569') : ln.colour,
           weight: s.weight, opacity: ln.cls === 'coach' ? 0.55 : 0.9, dashArray: s.dashArray
         })
-          .bindPopup('<b>' + ln.name + '</b><br>' + (ln.network || '') + (ln.ref ? ' · ' + ln.ref : '') + '<br><span style="color:#64748b;font-size:12px">数据 © OpenStreetMap 贡献者</span>')
+          .bindPopup('<b>' + ln.name + '</b><br>' + (ln.network || '') + (ln.ref ? ' · ' + ln.ref : '') + '<br><span style="color:#64748b;font-size:12px">数据 © OpenStreetMap 贡献者（内置离线）</span>')
           .addTo(metroLayer);
       }
       for (const st of window.TRANSIT_METRO.stations) {
@@ -803,24 +877,22 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
           .bindTooltip(st.name + (rail ? '（铁路站）' : '')).addTo(metroLayer);
       }
       metroLayer.addTo(map);
-      $('#transitHint').textContent = '';
+      showHint('');
       return true;
-    } catch (e) {
-      $('#transitHint').textContent = '轨道数据加载失败';
-      return false;
-    } finally { metroLoading = false; }
+    } catch (e) { showHint('轨道数据加载失败'); return false; }
+    finally { transitLoading.metro = false; }
   }
 
   async function toggleCorridor() {
     if (corridorLayer) { map.removeLayer(corridorLayer); corridorLayer = null; $('#transitLegend').classList.add('hidden'); return true; }
-    if (corridorLoading) return false;
-    corridorLoading = true;
-    $('#transitHint').textContent = '正在加载公交走廊数据…';
+    if (transitLoading.corridor) return false;
+    transitLoading.corridor = true;
+    showHint('正在加载公交走廊数据…');
     try {
       if (!window.TRANSIT_CORRIDORS) await loadScript('transit/corridors.js');
       const d = window.TRANSIT_CORRIDORS;
       corridorLayer = L.layerGroup();
-      // 性能优化：按颜色档合并为 3 个 MultiPolyline（避免数千个独立 polyline 对象）
+      // 性能优化：按颜色档合并为 3 个 MultiPolyline
       const tiers = [
         { min: d.thr * 4, color: '#dc2626', w: 7 },
         { min: d.thr * 2, color: '#f59e0b', w: 5 },
@@ -840,14 +912,12 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
       corridorLayer.addTo(map);
       $('#transitLegend').innerHTML = '同路段经过的公交线路数（越多班次越密）：<br>' +
         '<span style="color:#0d9488">━ ' + d.thr + '+ 条</span>　<span style="color:#f59e0b">━ ' + (d.thr * 2) + '+ 条</span>　<span style="color:#dc2626">━ ' + (d.thr * 4) + '+ 条</span><br>' +
-        '走廊越密集/越暖，说明沿线住着通勤越省时间 · 共 ' + d.routes + ' 条线路统计';
+        '走廊越密集/越暖，说明沿线住着通勤越省时间 · 共 ' + d.routes + ' 条线路统计（内置离线）';
       $('#transitLegend').classList.remove('hidden');
-      $('#transitHint').textContent = '';
+      showHint('');
       return true;
-    } catch (e) {
-      $('#transitHint').textContent = '走廊数据加载失败';
-      return false;
-    } finally { corridorLoading = false; }
+    } catch (e) { showHint('走廊数据加载失败'); return false; }
+    finally { transitLoading.corridor = false; }
   }
 
   $('#metroBtn').addEventListener('click', async () => {
@@ -865,24 +935,24 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
   let svLayer = null;
   async function toggleSv() {
     if (svLayer) { map.removeLayer(svLayer); svLayer = null; return true; }
-    $('#transitHint').textContent = '正在加载街景点位…';
+    if (transitLoading.sv) return false;
+    transitLoading.sv = true;
+    showHint('正在加载街景点位…');
     try {
       if (!window.TRANSIT_STREETVIEW) await loadScript('transit/streetview.js');
       svLayer = L.layerGroup();
       for (const p of window.TRANSIT_STREETVIEW.pts) {
         L.circleMarker([p.lat, p.lon], { radius: 6, color: '#fff', weight: 2, fillColor: '#16a34a', fillOpacity: 1 })
           .bindPopup('<b>📷 全景街景</b><br>' + (p.date || '') + ' · © ' + (p.by || '?') + ' (CC-BY-SA)<br>' +
-            '<img src="' + p.thumb + '" width="256" style="border-radius:8px;margin-top:4px" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{textContent:\'照片需联网查看\',style:\'color:#64748b;font-size:12px\'}))"><br>' +
-            (p.hd ? '<a href="' + p.hd + '" target="_blank" rel="noopener">查看高清全景图 ↗</a>' : ''), { maxWidth: 280 })
+            '<img src="' + p.thumb + '" width="240" style="border-radius:8px;margin-top:4px" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{textContent:\'照片需联网查看\',style:\'color:#64748b;font-size:12px\'}))"><br>' +
+            (p.hd ? '<a href="' + p.hd + '" target="_blank" rel="noopener">查看高清全景图 ↗</a>' : ''), { maxWidth: 260 })
           .addTo(svLayer);
       }
       svLayer.addTo(map);
-      $('#transitHint').textContent = window.TRANSIT_STREETVIEW.count + ' 个开放街景点（Panoramax，覆盖有限；照片点开需联网）';
+      showHint(window.TRANSIT_STREETVIEW.count + ' 个开放街景点（覆盖有限，照片需联网）');
       return true;
-    } catch (e) {
-      $('#transitHint').textContent = '街景数据加载失败';
-      return false;
-    }
+    } catch (e) { showHint('街景数据加载失败'); return false; }
+    finally { transitLoading.sv = false; }
   }
   $('#svBtn').addEventListener('click', async () => {
     const on = await toggleSv();
@@ -890,12 +960,10 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
     $('#svBtn').style.background = on && svLayer ? '#f0fdfa' : '';
   });
 
-  /* ===== 置业参考（housing 采集数据 + 通勤站点 + 全国低价城市）===== */
+  /* ===== 置业参考（housing 采集 + 通勤站点 + 全国低价城市，全离线）===== */
   map.createPane('housing'); map.getPane('housing').style.zIndex = 360;
   const houseRenderer = L.canvas({ padding: 0.3, pane: 'housing' });
   let houseLayer = null, stLayer = null, lowLayer = null, townLayer = null, townBusy = false;
-  const setHouseHint = (msg) => { const el = $('#houseHint'); if (msg) { el.textContent = msg; el.classList.remove('hidden'); } else el.classList.add('hidden'); };
-  // 房源点击查询网格（0.005° ≈ 550m 格）
   let houseGrid = null;
   function houseGridBuild() {
     if (houseGrid) return houseGrid;
@@ -915,7 +983,7 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
     for (let r = 1; r <= 8; r++) {
       for (let dy = -r; dy <= r; dy++) {
         for (let dx = -r; dx <= r; dx++) {
-          if (Math.max(Math.abs(dy), Math.abs(dx)) !== r) continue; // 只扫环
+          if (Math.max(Math.abs(dy), Math.abs(dx)) !== r) continue;
           const arr = grid.get((cy + dy) + ',' + (cx + dx));
           if (!arr) continue;
           for (const p of arr) {
@@ -935,41 +1003,48 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
 
   async function toggleHouse() {
     if (houseLayer) { map.removeLayer(houseLayer); houseLayer = null; return true; }
-    setHouseHint('正在加载房源数据…');
+    if (transitLoading.house) return false;
+    transitLoading.house = true;
+    showHint('正在加载房源数据…');
     try {
       if (!window.HOUSING) await loadScript('transit/housing.js');
       houseLayer = L.layerGroup();
       for (const p of window.HOUSING.pts) {
-        L.circleMarker([p.lat, p.lon], {
-          renderer: houseRenderer, radius: 4, color: '#fff', weight: 1,
-          fillColor: houseColor(p.total), fillOpacity: 0.9, interactive: false
-        }).addTo(houseLayer);
+        L.circleMarker([p.lat, p.lon], {          renderer: houseRenderer, radius: 4, color: '#fff', weight: 1,          fillColor: houseColor(p.total), fillOpacity: 0.9, interactive: false          }).addTo(houseLayer);
       }
       houseLayer.addTo(map);
-      setHouseHint(window.HOUSING.count + ' 条 ≤50 万房源（绿<20万/黄20-40/橙40-50）· 点击点位查看详情');
+      showHint(window.HOUSING.count + ' 条 ≤50 万房源（绿<20万/黄20-40/橙40-50）');
       return true;
-    } catch (e) { setHouseHint('房源数据加载失败'); return false; }
+    } catch (e) { showHint('房源数据加载失败'); return false; }
+    finally { transitLoading.house = false; }
   }
 
   async function toggleStations() {
     if (stLayer) { map.removeLayer(stLayer); stLayer = null; return true; }
-    setHouseHint('正在加载通勤站点…');
+    if (transitLoading.st) return false;
+    transitLoading.st = true;
+    showHint('正在加载通勤站点…');
     try {
       if (!window.STATIONS_MAP) await loadScript('transit/stations.js');
       stLayer = L.layerGroup();
       for (const s of window.STATIONS_MAP.stations) {
-        L.circleMarker([s.lat, s.lon], { renderer: houseRenderer, radius: 3, color: '#2563eb', weight: 1, fillColor: '#93c5fd', fillOpacity: 0.9, interactive: false })
+        L.circleMarker([s.lat, s.lon], { renderer: houseRenderer, radius: 3, color: '#2563eb', weight: 1, fillColor: '#93c5fd', fillOpacity: 0.9 })
+          .bindPopup('<b>🚏 ' + s.name + '</b><br>' + (s.city || '') + ' · ' + (s.kind || '站点') + (s.fare ? '<br>票价: ' + s.fare : '') + (s.routes ? '<br>线路: ' + s.routes : ''), { maxWidth: 260 })
+          .bindTooltip(s.name)
           .addTo(stLayer);
       }
       stLayer.addTo(map);
-      setHouseHint(window.STATIONS_MAP.count + ' 个通勤站点（大巴/城际/地铁口，来源 traffic 采集）');
+      showHint(window.STATIONS_MAP.count + ' 个通勤站点（离线内置）');
       return true;
-    } catch (e) { setHouseHint('站点数据加载失败'); return false; }
+    } catch (e) { showHint('站点数据加载失败'); return false; }
+    finally { transitLoading.st = false; }
   }
 
   async function toggleLowCities() {
     if (lowLayer) { map.removeLayer(lowLayer); lowLayer = null; return true; }
-    setHouseHint('正在加载低价城市…');
+    if (transitLoading.low) return false;
+    transitLoading.low = true;
+    showHint('正在加载低价城市…');
     try {
       if (!window.LOW_CITIES) await loadScript('transit/lowcity.js');
       lowLayer = L.layerGroup();
@@ -981,10 +1056,11 @@ $('#commuteBtn').textContent = '🧮 点击地图重设上班地点';
           .addTo(lowLayer);
       }
       lowLayer.addTo(map);
-      map.fitBounds(L.latLngBounds(window.LOW_CITIES.cities.map((c) => [c.lat, c.lon])), { padding: [40, 40] });
-      setHouseHint('全国低价城市参考（包子全是水等博主数据，媒体报道口径）');
+      map.fitBounds(L.latLngBounds(window.LOW_CITIES.cities.map((c) => [c.lat, c.lon])), { padding: [50, 50] });
+      showHint('全国低价城市参考（包子全是水等博主数据）');
       return true;
-    } catch (e) { setHouseHint('低价城市数据加载失败'); return false; }
+    } catch (e) { showHint('低价城市数据加载失败'); return false; }
+    finally { transitLoading.low = false; }
   }
 
   $('#houseBtn').addEventListener('click', async () => {
