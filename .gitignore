@@ -16,3 +16,4 @@ desktop/启动地图.lnk
 启动局域网服务.lnk
 防火墙放行*.lnk
 .DS_Store
+transit-offline.zip >> .gitignore
