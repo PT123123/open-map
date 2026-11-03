@@ -272,6 +272,34 @@ public class MainActivity extends Activity {
                 return "error:" + String.valueOf(e.getMessage()).replace("\"", "'");
             }
         }
+
+        /** 解压 offline/ 下的 .gz 到 offline/<destRelPath>（roads.js.gz 用） */
+        @JavascriptInterface
+        public String gunzip(String gzRelPath, String destRelPath) {
+            try {
+                File src = new File(offlineDir, gzRelPath);
+                File dest = new File(offlineDir, destRelPath);
+                if (!src.isFile()) return "error:gz 不存在";
+                if (!dest.getParentFile().exists()) dest.getParentFile().mkdirs();
+                java.util.zip.GZIPInputStream gis = new java.util.zip.GZIPInputStream(new FileInputStream(src));
+                FileOutputStream os = new FileOutputStream(dest);
+                byte[] buf = new byte[16384];
+                int n;
+                while ((n = gis.read(buf)) > 0) os.write(buf, 0, n);
+                os.close(); gis.close();
+                return "done:" + dest.length();
+            } catch (Exception e) {
+                return "error:" + String.valueOf(e.getMessage()).replace("\"", "'");
+            }
+        }
+
+        /** 用系统浏览器打开 URL（下载兜底） */
+        @JavascriptInterface
+        public void openInBrowser(String url) {
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            } catch (Exception ignored) { }
+        }
     }
 
     private static final int REQ_LOCATION = 1;
