@@ -24,7 +24,7 @@ body { background: var(--bg); }
 
   /* ===== 侧边栏 ===== */
   #sidebar { width: 320px; min-width: 320px; display: flex; flex-direction: column;
-             background: #fff; border-right: 1px solid var(--border); z-index: 1000; }
+             background: var(--card); border-right: 1px solid var(--border); z-index: 1000; }
   .brand { display: flex; align-items: center; gap: 12px; padding: 18px 16px;
            background: linear-gradient(135deg, var(--brand-light), var(--brand)); color: #fff; }
   .brand .logo { font-size: 30px; }
@@ -37,9 +37,9 @@ body { background: var(--bg); }
 
   /* ===== 搜索 ===== */
   .search-box { display: flex; gap: 8px; }
-  .search-box input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+  .search-box input { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text);
                       font-size: 14px; outline: none; transition: border-color .15s, box-shadow .15s; }
-  .search-box input:focus { border-color: var(--brand-light); box-shadow: 0 0 0 3px rgba(20,184,166,.18); }
+  .search-box input:focus { border-color: var(--brand-light); box-shadow: 0 0 0 3px rgba(22,119,255,.18); }
   .search-box button { width: 44px; border: none; border-radius: 10px; background: var(--brand);
                        color: #fff; font-size: 17px; cursor: pointer; }
   .search-box button:hover { background: var(--brand-light); }
@@ -47,7 +47,7 @@ body { background: var(--bg); }
              border: 1px solid var(--border); border-radius: 10px; }
   .results li { padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--border); }
   .results li:last-child { border-bottom: none; }
-  .results li:hover { background: #f0fdfa; }
+  .results li:hover { background: var(--brand-weak); }
   .r-title { font-size: 14px; font-weight: 600; }
   .r-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .status { margin-top: 10px; font-size: 13px; color: var(--muted); }
@@ -56,14 +56,14 @@ body { background: var(--bg); }
   /* ===== 图层卡片 ===== */
   .layer-card { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 8px;
                 padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px;
-                background: #fff; font-size: 14px; cursor: pointer; text-align: left; }
+                background: var(--card); font-size: 14px; cursor: pointer; text-align: left; }
   .layer-card .ic { font-size: 18px; }
   .layer-card:hover { border-color: var(--brand-light); }
-  .layer-card.active { border-color: var(--brand); background: #f0fdfa; font-weight: 600; }
+  .layer-card.active { border-color: var(--brand); background: var(--brand-weak); font-weight: 600; }
 
   /* ===== 城市快捷 ===== */
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; background: #fff;
+  .chip { padding: 6px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--card);
           font-size: 13px; cursor: pointer; }
   .chip:hover { border-color: var(--brand); color: var(--brand); }
 
@@ -77,9 +77,9 @@ body { background: var(--bg); }
 
   /* ===== 地图区 ===== */
   #mapwrap { position: relative; flex: 1; }
-  #map { position: absolute; inset: 0; background: #dfe6ec; }
+  #map { position: absolute; inset: 0; background: var(--bg); }
   #coords { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 900;
-            padding: 5px 14px; border-radius: 999px; background: rgba(15,23,42,.72); color: #fff;
+            padding: 5px 14px; border-radius: 999px; background: rgba(10,16,24,.78); color: #fff;
             font-size: 12px; font-family: Consolas, monospace; }
   #toast { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 1200;
            padding: 9px 18px; border-radius: 999px; background: rgba(15,23,42,.85); color: #fff; font-size: 13px; }
@@ -90,6 +90,7 @@ body { background: var(--bg); }
     <header class="brand">
       <div class="logo">🗺️</div>
       <div>
+<button id="themeQuick" title="切换深浅色" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:17px;border-radius:8px;padding:4px 8px;cursor:pointer">🌙</button>
         <h1>开源地图</h1>
         <p>OpenStreetMap · 中国街道级</p>
       </div>
@@ -317,6 +318,20 @@ body { background: var(--bg); }
   }));
   __mq.addEventListener ? __mq.addEventListener('change', applyTheme) : __mq.addListener(applyTheme);
   applyTheme();
+
+  const themeQuick = document.getElementById('themeQuick');
+  function syncQuickIcon() {
+    const eff = document.documentElement.getAttribute('data-theme');
+    if (themeQuick) themeQuick.textContent = eff === 'dark' ? '☀️' : '🌙';
+  }
+  if (themeQuick) themeQuick.addEventListener('click', () => {
+    const eff = document.documentElement.getAttribute('data-theme');
+    try { localStorage.setItem('openmap-theme', eff === 'dark' ? 'light' : 'dark'); } catch (e) {}
+    applyTheme();
+  });
+  const __oldApply = applyTheme;
+  applyTheme = function() { __oldApply(); syncQuickIcon(); };
+  syncQuickIcon();
 
   /* ===== 提示条 / 经纬度 ===== */
   let toastTimer = null;
